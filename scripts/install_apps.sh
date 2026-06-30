@@ -14,7 +14,9 @@ install_apps() {
     if [[ "$DRY_RUN" == "true" ]]; then
       log_dry_run "Homebrew not installed — would install applications after Homebrew setup"
     else
-      die "Homebrew is required. Run install_homebrew first."
+      log_warn "Homebrew is not available. Skipping application installation."
+      log_warn "Re-run mac-bootstrap after Homebrew is installed."
+      return 1
     fi
   fi
 

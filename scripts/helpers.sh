@@ -18,6 +18,7 @@ export BREWFILE="${BOOTSTRAP_ROOT}/Brewfile"
 DRY_RUN="${DRY_RUN:-false}"
 FORCE="${FORCE:-false}"
 NONINTERACTIVE="${NONINTERACTIVE:-false}"
+SUDO_KEEPALIVE_PID=""
 
 # Source logging if not already loaded
 if ! declare -F log_info >/dev/null 2>&1; then
@@ -28,6 +29,85 @@ fi
 die() {
   log_error "$@"
   exit 1
+}
+
+warn_and_continue() {
+  log_warn "$@"
+  return 1
+}
+
+stop_sudo_keepalive() {
+  if [[ -n "${SUDO_KEEPALIVE_PID:-}" ]]; then
+    kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
+    wait "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
+    SUDO_KEEPALIVE_PID=""
+  fi
+}
+
+start_sudo_keepalive() {
+  if [[ "$DRY_RUN" == "true" ]] || [[ -n "${SUDO_KEEPALIVE_PID:-}" ]]; then
+    return 0
+  fi
+
+  (
+    while true; do
+      sleep 60
+      sudo -n true 2>/dev/null || exit
+    done
+  ) &
+  SUDO_KEEPALIVE_PID=$!
+}
+
+ensure_sudo() {
+  local max_attempts=3
+  local attempt=1
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log_dry_run "Would request administrator privileges"
+    return 0
+  fi
+
+  if sudo -n true 2>/dev/null; then
+    start_sudo_keepalive
+    return 0
+  fi
+
+  if [[ "$NONINTERACTIVE" == "true" ]]; then
+    log_error "Administrator privileges are required but --noninteractive was specified."
+    log_error "Run without --noninteractive or authorize sudo first: sudo -v"
+    return 1
+  fi
+
+  log_warn "mac-bootstrap needs administrator privileges for some steps (Homebrew, system tools, Xcode)."
+  log_info "Please enter your macOS password when prompted."
+
+  while [[ "$attempt" -le "$max_attempts" ]]; do
+    if sudo -v; then
+      log_success "Administrator privileges granted"
+      start_sudo_keepalive
+      return 0
+    fi
+
+    log_warn "Administrator authorization failed (attempt ${attempt}/${max_attempts})"
+    attempt=$((attempt + 1))
+  done
+
+  log_error "Could not obtain administrator privileges after ${max_attempts} attempts."
+  return 1
+}
+
+run_bootstrap_step() {
+  local step_name="$1"
+  shift
+
+  if "$@"; then
+    return 0
+  fi
+
+  local exit_code=$?
+  log_warn "Step '${step_name}' failed (exit ${exit_code}). Continuing with remaining steps..."
+  BOOTSTRAP_FAILED_STEPS+=("${step_name}")
+  return 0
 }
 
 confirm() {
@@ -60,8 +140,30 @@ run_sudo() {
     log_dry_run "Would run (sudo): $*"
     return 0
   fi
-  log_debug "Running (sudo): $*"
-  sudo "$@"
+
+  local max_attempts=3
+  local attempt=1
+
+  while [[ "$attempt" -le "$max_attempts" ]]; do
+    if sudo -n true 2>/dev/null || ensure_sudo; then
+      log_debug "Running (sudo): $*"
+      if sudo "$@"; then
+        return 0
+      fi
+      log_warn "sudo command failed: $*"
+    fi
+
+    if [[ "$NONINTERACTIVE" == "true" ]]; then
+      return 1
+    fi
+
+    log_warn "Retrying sudo command (attempt ${attempt}/${max_attempts})..."
+    sudo -k 2>/dev/null || true
+    attempt=$((attempt + 1))
+  done
+
+  log_error "sudo command failed after ${max_attempts} attempts: $*"
+  return 1
 }
 
 command_exists() {

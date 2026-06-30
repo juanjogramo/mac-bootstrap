@@ -72,38 +72,41 @@ EOF
 
 run_bootstrap_profile() {
   local profile="$1"
+  BOOTSTRAP_FAILED_STEPS=()
 
   load_profile "$profile"
   log_section "Starting mac-bootstrap (profile: ${profile})"
 
   if [[ "$DRY_RUN" == "true" ]]; then
     log_warn "DRY-RUN MODE — no changes will be made"
+  elif [[ "$NONINTERACTIVE" != "true" ]]; then
+    ensure_sudo || log_warn "Continuing without cached administrator privileges"
   fi
 
   mkdir -p "${LOGS_DIR}"
 
   if profile_module_enabled "homebrew"; then
-    install_homebrew
+    run_bootstrap_step "homebrew" install_homebrew
   fi
 
   if profile_module_enabled "oh_my_zsh" || profile_module_enabled "cli"; then
     if profile_module_enabled "cli"; then
-      install_cli
+      run_bootstrap_step "cli" install_cli
     elif profile_module_enabled "oh_my_zsh"; then
-      install_oh_my_zsh
+      run_bootstrap_step "oh-my-zsh" install_oh_my_zsh
     fi
   fi
 
   if profile_module_enabled "apps"; then
-    install_apps
+    run_bootstrap_step "apps" install_apps
   fi
 
   if profile_module_enabled "mas"; then
-    install_mas
+    run_bootstrap_step "mas" install_mas
   fi
 
   if profile_module_enabled "macos_preferences"; then
-    configure_macos_preferences
+    run_bootstrap_step "macos-preferences" configure_macos_preferences
   fi
 
   local profile_xcode
@@ -112,14 +115,22 @@ run_bootstrap_profile() {
     local xcode_path_override
     xcode_path_override="$(yaml_get_value "$PROFILE_FILE" "xcode_path")"
     if [[ "$xcode_path_override" != "null" ]] && [[ -n "$xcode_path_override" ]]; then
-      install_xcode "$xcode_path_override"
+      run_bootstrap_step "xcode" install_xcode "$xcode_path_override"
     else
-      install_xcode ""
+      run_bootstrap_step "xcode" install_xcode ""
     fi
   fi
 
   log_section "Bootstrap Complete"
-  log_success "Profile '${profile}' finished. Run './bootstrap.sh --validate' to verify."
+
+  if [[ "${#BOOTSTRAP_FAILED_STEPS[@]}" -gt 0 ]]; then
+    log_warn "Completed with failed steps: ${BOOTSTRAP_FAILED_STEPS[*]}"
+    log_warn "Fix the issues above and re-run: mac-bootstrap --profile ${profile}"
+  else
+    log_success "Profile '${profile}' finished successfully."
+  fi
+
+  log_info "Run 'mac-bootstrap --validate' to verify your installation."
 
   if [[ "$DRY_RUN" != "true" ]]; then
     run_validation || true
@@ -247,6 +258,8 @@ parse_args() {
 }
 
 main() {
+  trap 'stop_sudo_keepalive' EXIT
+
   if [[ $# -eq 0 ]]; then
     usage
     exit 1

@@ -17,7 +17,8 @@ install_mas() {
     elif command_exists brew; then
       brew install mas
     else
-      die "Homebrew is required to install mas."
+      log_warn "Homebrew is not available. Skipping Mac App Store app installation."
+      return 1
     fi
   fi
 

@@ -4,11 +4,31 @@
 
 ## One-line install
 
+### Public repository
+
+The curl one-liner only works if the GitHub repo is **public**:
+
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juanjogramo/mac-bootstrap/main/install.sh)"
 ```
 
-That downloads mac-bootstrap to `~/.mac-bootstrap`, adds `mac-bootstrap` to your PATH, and runs the `personal` profile.
+> If you get a **404**, the repository is private. Use the [private install](#private-repository) method below, or make the repo public under **Settings → General → Danger zone → Change repository visibility**.
+
+### Private repository
+
+Use git clone (SSH recommended for private repos):
+
+```bash
+git clone git@github.com:juanjogramo/mac-bootstrap.git ~/.mac-bootstrap && bash ~/.mac-bootstrap/install.sh
+```
+
+HTTPS with a credential helper also works:
+
+```bash
+git clone https://github.com/juanjogramo/mac-bootstrap.git ~/.mac-bootstrap && bash ~/.mac-bootstrap/install.sh
+```
+
+Both install to `~/.mac-bootstrap`, add `mac-bootstrap` to your PATH, and run the `personal` profile.
 
 ### Install options
 
@@ -607,6 +627,7 @@ Increase verbosity:
 | Idempotent | Detects existing installs and skips them |
 | No credentials | Never stores Apple ID, passwords, or certificates |
 | Confirmation | Prompts before overwriting existing Xcode installations |
+| Sudo handling | Prompts for administrator password with retries; continues on step failure |
 | Dry-run | `--dry-run` previews every operation |
 | Force mode | `--force` / `--noninteractive` for automation |
 | Changelog | `--add-*` commands append to `CHANGELOG.md` |
@@ -637,6 +658,32 @@ make bootstrap PROFILE=personal
 ---
 
 ## Troubleshooting
+
+### `raw.githubusercontent.com` returns 404
+
+The repository is **private**. GitHub does not serve raw files from private repos without authentication.
+
+**Option A — Make the repo public** (required for the curl one-liner):
+
+1. Open [github.com/juanjogramo/mac-bootstrap/settings](https://github.com/juanjogramo/mac-bootstrap/settings)
+2. **General → Danger zone → Change repository visibility → Public**
+
+**Option B — Install via git clone** (works with private repos):
+
+```bash
+git clone git@github.com:juanjogramo/mac-bootstrap.git ~/.mac-bootstrap && bash ~/.mac-bootstrap/install.sh
+```
+
+### Homebrew installation requires administrator access
+
+mac-bootstrap prompts for your macOS password before steps that need `sudo` (Homebrew, Xcode, some system preferences). If authorization fails, it retries up to 3 times and **continues with remaining steps** instead of exiting immediately.
+
+```bash
+mac-bootstrap --profile personal
+# Password prompt: "mac-bootstrap needs administrator privileges..."
+```
+
+If Homebrew installation fails, fix the issue and re-run — other completed steps are skipped safely (idempotent).
 
 ### Homebrew not found after installation
 

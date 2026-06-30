@@ -14,8 +14,24 @@ MAC_BOOTSTRAP_SKIP_RUN="${MAC_BOOTSTRAP_SKIP_RUN:-0}"
 MAC_BOOTSTRAP_DRY_RUN="${MAC_BOOTSTRAP_DRY_RUN:-0}"
 MAC_BOOTSTRAP_NONINTERACTIVE="${MAC_BOOTSTRAP_NONINTERACTIVE:-0}"
 
-INSTALL_REPO_URL="https://github.com/${MAC_BOOTSTRAP_REPO}.git"
+INSTALL_REPO_URL="${MAC_BOOTSTRAP_GIT_URL:-https://github.com/${MAC_BOOTSTRAP_REPO}.git}"
 INSTALL_ARCHIVE_URL="https://github.com/${MAC_BOOTSTRAP_REPO}/archive/refs/heads/${MAC_BOOTSTRAP_BRANCH}.tar.gz"
+
+detect_local_checkout() {
+  local script_path=""
+
+  if [[ -n "${BASH_SOURCE[0]:-}" ]] && [[ "${BASH_SOURCE[0]}" != "-" ]] && [[ -f "${BASH_SOURCE[0]}" ]]; then
+    script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [[ -f "${script_path}/bootstrap.sh" ]]; then
+      MAC_BOOTSTRAP_HOME="${script_path}"
+      export MAC_BOOTSTRAP_HOME
+      info "Using local checkout at ${MAC_BOOTSTRAP_HOME}"
+      return 0
+    fi
+  fi
+
+  return 1
+}
 
 abort() {
   printf '\033[0;31mError:\033[0m %s\n' "$1" >&2
@@ -72,7 +88,20 @@ install_or_update_repo() {
   tmp_dir="$(mktemp -d)"
   trap 'rm -rf "${tmp_dir}"' EXIT
 
-  curl -fsSL "${INSTALL_ARCHIVE_URL}" -o "${tmp_dir}/mac-bootstrap.tar.gz"
+  curl -fsSL "${INSTALL_ARCHIVE_URL}" -o "${tmp_dir}/mac-bootstrap.tar.gz" || abort "$(cat <<EOF
+Could not download ${MAC_BOOTSTRAP_REPO}.
+
+The curl one-liner requires a public GitHub repository.
+Your repo appears to be private (raw.githubusercontent.com returns 404).
+
+Use one of these instead:
+
+  git clone git@github.com:${MAC_BOOTSTRAP_REPO}.git ~/.mac-bootstrap && bash ~/.mac-bootstrap/install.sh
+
+Or make the repository public:
+  https://github.com/${MAC_BOOTSTRAP_REPO}/settings
+EOF
+)"
   tar -xzf "${tmp_dir}/mac-bootstrap.tar.gz" -C "${tmp_dir}"
 
   archive_root="${tmp_dir}/mac-bootstrap-${MAC_BOOTSTRAP_BRANCH}"
@@ -180,7 +209,12 @@ main() {
   printf '  \033[1mmac-bootstrap\033[0m — Infrastructure as Code for macOS\n'
   printf '\n'
 
-  install_or_update_repo
+  if detect_local_checkout; then
+    :
+  else
+    install_or_update_repo
+  fi
+
   make_executable
   add_to_path
   run_bootstrap

@@ -166,6 +166,36 @@ test_mac_bootstrap_wrapper_syntax() {
   fi
 }
 
+test_ensure_sudo_dry_run() {
+  echo "Test: ensure_sudo dry-run"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  if DRY_RUN=true bash -c 'source scripts/helpers.sh && ensure_sudo'; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    echo "  PASS: ensure_sudo succeeds in dry-run mode"
+  else
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    echo "  FAIL: ensure_sudo failed in dry-run mode"
+  fi
+}
+
+test_run_bootstrap_step_continues() {
+  echo "Test: run_bootstrap_step continues on failure"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  if bash -c '
+    source scripts/helpers.sh
+    BOOTSTRAP_FAILED_STEPS=()
+    failing() { return 1; }
+    run_bootstrap_step "test-step" failing
+    [[ "${#BOOTSTRAP_FAILED_STEPS[@]}" -eq 1 ]]
+  '; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    echo "  PASS: run_bootstrap_step records failure without exiting"
+  else
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    echo "  FAIL: run_bootstrap_step did not handle failure correctly"
+  fi
+}
+
 test_xcode_version_extraction() {
   echo "Test: Xcode version extraction"
   # shellcheck source=../scripts/install_xcode.sh
@@ -205,6 +235,10 @@ echo ""
 test_install_script_syntax
 echo ""
 test_mac_bootstrap_wrapper_syntax
+echo ""
+test_ensure_sudo_dry_run
+echo ""
+test_run_bootstrap_step_continues
 echo ""
 test_xcode_dry_run_includes_clt
 echo ""

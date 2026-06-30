@@ -310,7 +310,10 @@ install_command_line_tools() {
       log_info "Running: xcode-select --install"
       log_warn "A system dialog may appear — confirm the installation if prompted"
       xcode-select --install 2>/dev/null || true
-      wait_for_command_line_tools || die "Command Line Tools installation failed or timed out"
+      wait_for_command_line_tools || {
+        log_error "Command Line Tools installation failed or timed out"
+        return 1
+      }
     fi
   fi
 
