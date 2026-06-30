@@ -16,7 +16,7 @@ help:
 	@echo "  make install      Alias for bootstrap"
 
 chmod:
-	chmod +x bootstrap.sh scripts/*.sh
+	chmod +x bootstrap.sh install.sh bin/mac-bootstrap scripts/*.sh tests/run_tests.sh
 
 bootstrap: chmod
 	$(BOOTSTRAP) --profile $(PROFILE)
@@ -32,7 +32,7 @@ brewfile: chmod
 
 lint:
 	@command -v shellcheck >/dev/null 2>&1 || { echo "Install shellcheck: brew install shellcheck"; exit 1; }
-	shellcheck bootstrap.sh scripts/*.sh
+	shellcheck bootstrap.sh install.sh bin/mac-bootstrap scripts/*.sh
 
 test: chmod
 	./tests/run_tests.sh

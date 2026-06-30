@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# mac-bootstrap CLI wrapper — available on PATH after install
+
+set -euo pipefail
+
+resolve_bootstrap_root() {
+  local bin_dir
+  bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cd "${bin_dir}/.." && pwd
+}
+
+BOOTSTRAP_ROOT="$(resolve_bootstrap_root)"
+exec "${BOOTSTRAP_ROOT}/bootstrap.sh" "$@"

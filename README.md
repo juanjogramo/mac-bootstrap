@@ -2,13 +2,44 @@
 
 **Infrastructure as Code for macOS** — a reusable, idempotent bootstrap CLI that configures a fresh Mac with applications, development tools, system preferences, and optional Xcode installation.
 
-After a clean macOS installation, run:
+## One-line install
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juanjogramo/mac-bootstrap/main/install.sh)"
+```
+
+That downloads mac-bootstrap to `~/.mac-bootstrap`, adds `mac-bootstrap` to your PATH, and runs the `personal` profile.
+
+### Install options
+
+```bash
+# Preview only (no system changes)
+MAC_BOOTSTRAP_DRY_RUN=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juanjogramo/mac-bootstrap/main/install.sh)"
+
+# Install without running bootstrap
+MAC_BOOTSTRAP_SKIP_RUN=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juanjogramo/mac-bootstrap/main/install.sh)"
+
+# Custom install location or profile
+MAC_BOOTSTRAP_HOME=~/Developer/mac-bootstrap MAC_BOOTSTRAP_PROFILE=personal /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juanjogramo/mac-bootstrap/main/install.sh)"
+```
+
+After install, use the `mac-bootstrap` command from anywhere:
+
+```bash
+mac-bootstrap --profile personal
+mac-bootstrap --dry-run --profile personal
+mac-bootstrap --validate
+```
+
+---
+
+After a clean macOS installation, the one-liner above configures your Mac the way you normally set it up — safely, repeatably, and from version-controlled configuration.
+
+For local development or manual setup:
 
 ```bash
 ./bootstrap.sh --profile personal
 ```
-
-Your Mac is configured the way you normally set it up — safely, repeatably, and from version-controlled configuration.
 
 ---
 
@@ -65,10 +96,18 @@ Your Mac is configured the way you normally set it up — safely, repeatably, an
 
 ## Quick Start
 
+### One-line install (recommended)
+
 ```bash
-git clone <your-repo-url> mac-bootstrap
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juanjogramo/mac-bootstrap/main/install.sh)"
+```
+
+### Manual setup
+
+```bash
+git clone https://github.com/juanjogramo/mac-bootstrap.git
 cd mac-bootstrap
-chmod +x bootstrap.sh scripts/*.sh
+chmod +x bootstrap.sh install.sh bin/mac-bootstrap scripts/*.sh
 
 ./bootstrap.sh --profile personal --dry-run   # 1. Preview
 ./bootstrap.sh --profile personal             # 2. Execute
@@ -191,6 +230,12 @@ USAGE:
 
 | Variable | Default | Description |
 |---|---|---|
+| `MAC_BOOTSTRAP_HOME` | `~/.mac-bootstrap` | Install directory |
+| `MAC_BOOTSTRAP_PROFILE` | `personal` | Profile to run after install |
+| `MAC_BOOTSTRAP_SKIP_RUN` | `0` | Set to `1` to install only |
+| `MAC_BOOTSTRAP_DRY_RUN` | `0` | Set to `1` to preview during install |
+| `MAC_BOOTSTRAP_NONINTERACTIVE` | `0` | Set to `1` for unattended install |
+| `MAC_BOOTSTRAP_BRANCH` | `main` | Git branch to install |
 | `LOG_LEVEL` | `INFO` | Minimum log level to print |
 | `LOG_FILE` | `logs/bootstrap.log` | Path to log file |
 | `DRY_RUN` | `false` | Set to `true` to enable dry-run mode |
@@ -210,6 +255,9 @@ USAGE:
 
 ```
 mac-bootstrap/
+├── install.sh                # One-line curl installer
+├── bin/
+│   └── mac-bootstrap         # CLI wrapper (added to PATH)
 ├── bootstrap.sh              # Main CLI entry point
 ├── Brewfile                  # Auto-generated Homebrew bundle
 ├── Makefile                  # Convenience targets

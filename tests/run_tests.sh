@@ -142,6 +142,30 @@ test_xcode_dry_run_includes_clt() {
   fi
 }
 
+test_install_script_syntax() {
+  echo "Test: install.sh syntax"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  if bash -n "${BOOTSTRAP_ROOT}/install.sh" 2>/dev/null; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    echo "  PASS: install.sh syntax valid"
+  else
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    echo "  FAIL: install.sh syntax invalid"
+  fi
+}
+
+test_mac_bootstrap_wrapper_syntax() {
+  echo "Test: bin/mac-bootstrap syntax"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  if bash -n "${BOOTSTRAP_ROOT}/bin/mac-bootstrap" 2>/dev/null; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    echo "  PASS: bin/mac-bootstrap syntax valid"
+  else
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    echo "  FAIL: bin/mac-bootstrap syntax invalid"
+  fi
+}
+
 test_xcode_version_extraction() {
   echo "Test: Xcode version extraction"
   # shellcheck source=../scripts/install_xcode.sh
@@ -177,6 +201,10 @@ echo ""
 test_bootstrap_help
 echo ""
 test_dry_run
+echo ""
+test_install_script_syntax
+echo ""
+test_mac_bootstrap_wrapper_syntax
 echo ""
 test_xcode_dry_run_includes_clt
 echo ""
