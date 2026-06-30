@@ -1,0 +1,7 @@
+# Mac App Store applications (installed via mas)
+# Add new apps with: ./bootstrap.sh --add-mas "App Name" --id 123456789
+
+mas_apps:
+  - name: Things 3
+    id: 904280696
+    description: Task management application

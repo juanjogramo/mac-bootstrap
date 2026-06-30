@@ -1,0 +1,91 @@
+# macOS system preferences (applied via defaults write)
+# Each entry maps to a defaults command or custom handler
+
+preferences:
+  time_format:
+    description: Set clock to AM/PM format
+    domain: com.apple.menuextra.clock
+    key: DateFormat
+    value: "h:mm a"
+    type: string
+    handler: defaults
+
+  menu_bar_username:
+    description: Show logged-in username in menu bar
+    domain: com.apple.menuextra.usersettings
+    key: UserName
+    value: true
+    type: bool
+    handler: defaults
+
+  dock_size:
+    description: Set Dock size to 30%
+    domain: com.apple.dock
+    key: tilesize
+    value: 48
+    type: int
+    handler: defaults
+    note: "48px approximates 30% on standard displays"
+
+  dock_magnification:
+    description: Set Dock magnification to 40%
+    domain: com.apple.dock
+    key: magnification
+    value: true
+    type: bool
+    handler: defaults
+
+  dock_magnification_size:
+    description: Dock magnification size
+    domain: com.apple.dock
+    key: largesize
+    value: 64
+    type: int
+    handler: defaults
+    note: "64px approximates 40% magnification"
+
+  stage_manager_recent_apps:
+    description: Disable show recent apps in Stage Manager
+    domain: com.apple.WindowManager
+    key: HideDesktop
+    value: false
+    type: bool
+    handler: defaults
+
+  stage_manager_recent_apps_alt:
+    description: Disable recent apps in Stage Manager (alternate key)
+    domain: com.apple.WindowManager
+    key: StageManagerRecentApps
+    value: false
+    type: bool
+    handler: defaults
+
+  battery_percentage:
+    description: Show battery percentage in menu bar
+    domain: com.apple.menuextra.battery
+    key: ShowPercent
+    value: true
+    type: bool
+    handler: defaults
+
+  sound_icon_always:
+    description: Always show sound icon in menu bar
+    domain: com.apple.systemuiserver
+    key: menuExtras
+    value: '("/System/Library/CoreServices/Menu Extras/AirPort.menu", "/System/Library/CoreServices/Menu Extras/Volume.menu")'
+    type: array
+    handler: sound_menu
+
+  safari_restore_windows:
+    description: Safari opens with all windows from last session
+    domain: com.apple.Safari
+    key: NSQuitAlwaysKeepsWindows
+    value: true
+    type: bool
+    handler: defaults
+
+# Domains that require killall after changes
+restart_services:
+  - com.apple.dock
+  - com.apple.SystemUIServer
+  - com.apple.controlcenter

@@ -1,0 +1,28 @@
+# CLI tools installed via Homebrew or dedicated installers
+# Add new tools with: ./bootstrap.sh --add-cli "tool-name"
+
+cli:
+  - name: mas
+    formula: mas
+    description: Mac App Store command-line interface
+    special: false
+
+  - name: CocoaPods
+    formula: cocoapods
+    description: iOS dependency manager
+    special: false
+
+  - name: GitHub CLI
+    formula: gh
+    description: GitHub command-line interface
+    special: false
+
+# Special installers (not plain brew formulae)
+special:
+  - name: Homebrew
+    id: homebrew
+    description: macOS package manager
+
+  - name: Oh My Zsh
+    id: oh-my-zsh
+    description: Zsh framework and configuration

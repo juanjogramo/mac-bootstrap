@@ -1,0 +1,35 @@
+# Homebrew Cask applications
+# Add new apps with: ./bootstrap.sh --add-app "Name" --token cask-token
+
+apps:
+  - name: Google Chrome
+    token: google-chrome
+    description: Web browser
+
+  - name: ChatGPT for macOS
+    token: chatgpt
+    description: OpenAI ChatGPT desktop client
+
+  - name: Visual Studio Code
+    token: visual-studio-code
+    description: Code editor
+
+  - name: iTerm2
+    token: iterm2
+    description: Terminal emulator
+
+  - name: WhatsApp
+    token: whatsapp
+    description: Messaging application
+
+  - name: Telegram
+    token: telegram
+    description: Messaging application
+
+  - name: Logi Options+
+    token: logi-options+
+    description: Logitech device configuration
+
+  - name: 1Password
+    token: 1password
+    description: Password manager

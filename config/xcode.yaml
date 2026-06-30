@@ -1,0 +1,19 @@
+# Xcode installation configuration
+# Xcode is NOT installed from the Mac App Store
+
+xcode:
+  install_directory: /Applications
+  naming_pattern: "Xcode_{version}.app"
+  default_xip_search_paths:
+    - ~/Downloads
+    - ~/Desktop
+  xip_glob: "Xcode_*.xip"
+  license_accept_command: "xcodebuild -license accept"
+  install_command_line_tools: true
+  command_line_tools_timeout_seconds: 1800
+  use_headless_clt_install: true
+  verify_commands:
+    - "xcodebuild -version"
+    - "xcode-select -p"
+  extract_timeout_seconds: 3600
+  require_confirmation_overwrite: true

@@ -1,0 +1,38 @@
+# Logs (keep directory via logs/.gitkeep)
+logs/*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+
+# Local environment overrides (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Xcode extraction artifacts (local testing)
+Xcode.app/
+*.xip
+
+# Homebrew bundle lock (if generated locally)
+Brewfile.lock.json
+
+# Test artifacts
+tests/output/
+*.test.log

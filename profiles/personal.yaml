@@ -1,0 +1,24 @@
+# Personal Mac bootstrap profile
+# Usage: ./bootstrap.sh --profile personal
+
+profile: personal
+description: Personal development and productivity Mac configuration
+
+modules:
+  homebrew: true
+  oh_my_zsh: true
+  cli: true
+  apps: true
+  mas: true
+  macos_preferences: true
+  xcode: false
+
+# Set to true to install Xcode during bootstrap (uses --install-xcode logic)
+install_xcode: false
+
+# Override Xcode xip path (optional; can also pass --xcode-path)
+xcode_path: null
+
+validation:
+  strict: false
+  fail_on_warnings: false
