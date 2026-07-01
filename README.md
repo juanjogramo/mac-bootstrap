@@ -827,6 +827,8 @@ Each command validates input, prevents duplicates, updates YAML, regenerates `Br
 
 ## Development
 
+> **AI assistants:** See [AGENTS.md](AGENTS.md) for architecture, conventions, and change checklists.
+
 ### Run tests
 
 ```bash

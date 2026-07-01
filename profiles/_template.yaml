@@ -1,0 +1,25 @@
+# Profile template — copy to profiles/<name>.yaml
+# Usage: ./bootstrap.sh --profile <name>
+
+profile: <name>
+description: Short description of this machine configuration
+
+modules:
+  homebrew: true          # Install Homebrew (required for most modules)
+  oh_my_zsh: true         # Oh My Zsh only (used when cli: false)
+  cli: true               # CLI tools from config/cli.yaml (includes Oh My Zsh)
+  apps: true              # Homebrew casks from config/apps.yaml
+  mas: true               # Mac App Store apps from config/mas.yaml
+  macos_preferences: true # System defaults from config/macos.yaml
+  xcode: false            # Install Xcode from .xip archive
+
+# Alternative Xcode trigger (either this or modules.xcode: true)
+install_xcode: false
+
+# Optional path to Xcode .xip (overrides default search paths)
+xcode_path: null
+
+# Reserved for future use — not yet implemented in validate.sh
+validation:
+  strict: false
+  fail_on_warnings: false
