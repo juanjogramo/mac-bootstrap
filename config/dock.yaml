@@ -1,0 +1,23 @@
+# Dock layout managed via dockutil (scripts/configure_dock.sh)
+# Remove entries use dock labels; add entries use application paths.
+
+dock_remove:
+  - Messages
+  - Mail
+  - Contacts
+  - Maps
+  - Reminders
+  - Notes
+  - FaceTime
+  - Phone
+  - TV
+  - Games
+  - iPhone Mirroring
+
+dock_add:
+  - path: /Applications/Google Chrome.app
+  - path: /Applications/Visual Studio Code.app
+  - path: /Applications/ChatGPT.app
+  - path: /Applications/iTerm.app
+  - path: /Applications/1Password.app
+  - special: xcode

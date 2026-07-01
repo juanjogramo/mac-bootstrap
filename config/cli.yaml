@@ -17,6 +17,11 @@ cli:
     description: GitHub command-line interface
     special: false
 
+  - name: dockutil
+    formula: dockutil
+    description: Command-line Dock management utility
+    special: false
+
 # Special installers (not plain brew formulae)
 special:
   - name: Homebrew

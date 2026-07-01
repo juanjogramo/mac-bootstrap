@@ -75,6 +75,8 @@ For local development or manual setup:
 - [Profiles](#profiles)
 - [What Gets Installed](#what-gets-installed)
 - [macOS Preferences](#macos-preferences-configured)
+- [Dock Configuration](#dock-configuration)
+- [Keyboard Input Sources](#keyboard-input-sources)
 - [Xcode Installation](#xcode-installation)
 - [Validation](#validation)
 - [Logging](#logging)
@@ -89,7 +91,7 @@ For local development or manual setup:
 
 ## Features
 
-- **Configuration-driven** — apps, CLI tools, MAS apps, and preferences live in YAML
+- **Configuration-driven** — apps, CLI tools, MAS apps, Dock layout, keyboard layouts, and preferences live in YAML
 - **Idempotent** — safe to rerun; skips already-installed components
 - **Dry-run mode** — preview all changes before applying
 - **Validation** — verify installation state with a structured report
@@ -97,6 +99,8 @@ For local development or manual setup:
 - **Xcode support** — install from `.xip` archives with versioned naming (`Xcode_26.0.app`)
 - **Structured logging** — all operations logged to `logs/bootstrap.log`
 - **Profile-based** — support multiple machine configurations
+- **Dock customization** — remove default Apple apps and pin your apps via `dockutil`
+- **Keyboard layouts** — ensure required input sources (e.g. Spanish - ISO, ABC) are enabled
 - **Bash 3.2+ compatible** — works with the default macOS shell
 
 ---
@@ -155,7 +159,7 @@ chmod +x bootstrap.sh install.sh bin/mac-bootstrap scripts/*.sh
    ./bootstrap.sh --profile personal --dry-run
    ```
 
-3. **Run bootstrap** (installs Homebrew, apps, CLI tools, MAS apps, and applies preferences):
+3. **Run bootstrap** (installs Homebrew, apps, CLI tools, MAS apps, configures the Dock and keyboard layouts, and applies preferences):
 
    ```bash
    ./bootstrap.sh --profile personal
@@ -186,6 +190,8 @@ Bootstrap is modular. You can also run scripts directly:
 ./scripts/install_apps.sh
 ./scripts/install_cli.sh
 ./scripts/install_mas.sh
+./scripts/configure_dock.sh
+./scripts/configure_input_sources.sh
 ./scripts/macos_defaults.sh
 ./scripts/install_xcode.sh ~/Downloads/Xcode_26.0.xip
 ./scripts/validate.sh
@@ -290,6 +296,8 @@ mac-bootstrap/
 │   ├── cli.yaml              # CLI tools (Homebrew formulae)
 │   ├── mas.yaml              # Mac App Store applications
 │   ├── macos.yaml            # System preferences
+│   ├── dock.yaml             # Dock remove/add lists (dockutil)
+│   ├── input_sources.yaml    # Keyboard layout input sources
 │   └── xcode.yaml            # Xcode installation settings
 ├── profiles/
 │   └── personal.yaml         # Personal machine profile
@@ -298,6 +306,8 @@ mac-bootstrap/
 │   ├── install_apps.sh       # Cask application installer
 │   ├── install_cli.sh        # CLI tools + Oh My Zsh
 │   ├── install_mas.sh        # Mac App Store installer (mas)
+│   ├── configure_dock.sh     # Dock layout via dockutil
+│   ├── configure_input_sources.sh  # Keyboard input sources
 │   ├── install_xcode.sh      # Xcode .xip installer
 │   ├── macos_defaults.sh     # System preferences
 │   ├── validate.sh           # Validation report
@@ -370,6 +380,34 @@ preferences:
     handler: defaults
 ```
 
+### `config/dock.yaml`
+
+Dock items to remove (by label) and add (by application path). Requires `dockutil` (installed via `cli.yaml`):
+
+```yaml
+dock_remove:
+  - Messages
+  - Mail
+  - Safari
+
+dock_add:
+  - path: /Applications/Google Chrome.app
+  - path: /Applications/Visual Studio Code.app
+  - special: xcode   # resolves Xcode.app or Xcode_<version>.app
+```
+
+### `config/input_sources.yaml`
+
+Keyboard layouts enabled if missing (applied to `com.apple.HIToolbox`):
+
+```yaml
+input_sources:
+  - id: 87
+    name: "Spanish - ISO"
+  - id: 252
+    name: ABC
+```
+
 ### `config/xcode.yaml`
 
 Xcode installation behavior (archive path, naming, license acceptance):
@@ -411,7 +449,9 @@ modules:
   cli: true
   apps: true
   mas: true
+  dock: true
   macos_preferences: true
+  input_sources: true
   xcode: false
 
 install_xcode: false
@@ -422,10 +462,12 @@ xcode_path: null
 |---|---|
 | `homebrew` | Installs or updates Homebrew |
 | `oh_my_zsh` | Installs Oh My Zsh (also runs when `cli` is enabled) |
-| `cli` | Installs formulae from `cli.yaml` |
+| `cli` | Installs formulae from `cli.yaml` (includes `dockutil`) |
 | `apps` | Installs casks from `apps.yaml` |
 | `mas` | Installs Mac App Store apps from `mas.yaml` |
+| `dock` | Removes/adds Dock items via `dockutil` (`config/dock.yaml`) |
 | `macos_preferences` | Applies settings from `macos.yaml` |
+| `input_sources` | Enables keyboard layouts from `input_sources.yaml` |
 | `xcode` | Installs Xcode from `.xip` during bootstrap |
 
 To enable Xcode during a full bootstrap, set `install_xcode: true` or `modules.xcode: true` in the profile.
@@ -472,6 +514,7 @@ cp profiles/personal.yaml profiles/work.yaml
 | mas | Homebrew | `mas` |
 | CocoaPods | Homebrew | `cocoapods` |
 | GitHub CLI | Homebrew | `gh` |
+| dockutil | Homebrew | `dockutil` |
 
 ---
 
@@ -491,6 +534,64 @@ cp profiles/personal.yaml profiles/work.yaml
 Preferences are defined in `config/macos.yaml` and applied via `defaults write`. Dock and SystemUIServer are restarted automatically after changes.
 
 > Some menu bar items (username, sound icon) may still require confirmation in **System Settings → Control Center** on newer macOS versions.
+
+---
+
+## Dock Configuration
+
+The `dock` module uses [dockutil](https://github.com/kcrawford/dockutil) to customize the Dock after applications are installed. Configuration lives in `config/dock.yaml`.
+
+### Default behavior (`personal` profile)
+
+**Removed** (built-in apps by dock label):
+
+Messages, Mail, Contacts, Maps, Reminders, Notes, FaceTime, Phone, TV, Games, iPhone Mirroring
+
+**Added** (if the `.app` exists in `/Applications`):
+
+| Application | Path |
+|---|---|
+| Google Chrome | `/Applications/Google Chrome.app` |
+| Visual Studio Code | `/Applications/Visual Studio Code.app` |
+| ChatGPT | `/Applications/ChatGPT.app` |
+| iTerm2 | `/Applications/iTerm.app` |
+| 1Password | `/Applications/1Password.app` |
+| Xcode | `/Applications/Xcode.app` or latest `Xcode_<version>.app` |
+
+Operations are idempotent: items already removed or present in the Dock are skipped. The Dock is restarted once at the end of the step.
+
+> The `dock` module requires `cli: true` so `dockutil` is installed first. Run order: `cli` → `apps` → `dock`.
+
+### Customize
+
+Edit `config/dock.yaml` to change remove labels or add paths. Use `special: xcode` for versioned Xcode app names.
+
+```bash
+./bootstrap.sh --profile personal --dry-run   # preview Dock changes
+./scripts/configure_dock.sh                   # run Dock step only
+```
+
+---
+
+## Keyboard Input Sources
+
+The `input_sources` module ensures required keyboard layouts are enabled in **System Settings → Keyboard → Input Sources**. Configuration lives in `config/input_sources.yaml`.
+
+### Default layouts (`personal` profile)
+
+| Layout | KeyboardLayout ID |
+|---|---|
+| Spanish - ISO | `87` |
+| ABC | `252` |
+
+For each entry, bootstrap checks `AppleEnabledInputSources` in `com.apple.HIToolbox` and adds the layout only if it is missing.
+
+```bash
+./bootstrap.sh --profile personal --dry-run   # preview layout changes
+./scripts/configure_input_sources.sh          # run input sources step only
+```
+
+> Layout changes may require **logout/login** before they appear in System Settings.
 
 ---
 
@@ -722,7 +823,25 @@ Use a filename matching `Xcode_<version>.xip`, e.g. `Xcode_26.0.xip`.
 
 ### Dock / preferences not applied
 
-The bootstrap script restarts Dock and SystemUIServer automatically. For menu bar items, verify in **System Settings → Control Center**. A logout may be required for some settings.
+The bootstrap script restarts Dock and SystemUIServer automatically after macOS preference changes. The `dock` module also restarts the Dock after `dockutil` changes.
+
+For menu bar items, verify in **System Settings → Control Center**. A logout may be required for some settings.
+
+### Keyboard layouts not visible
+
+If new input sources do not appear after bootstrap, log out and back in. Verify with:
+
+```bash
+defaults read com.apple.HIToolbox AppleEnabledInputSources
+```
+
+### dockutil not found
+
+Ensure `cli: true` and `dock: true` in your profile. `dockutil` is installed as a Homebrew formula from `cli.yaml`. Re-run bootstrap or install manually:
+
+```bash
+brew install dockutil
+```
 
 ### Cask installation fails
 
@@ -764,7 +883,9 @@ modules:
   cli: true
   apps: true
   mas: true
+  dock: true
   macos_preferences: true
+  input_sources: true
   xcode: true
 
 install_xcode: true
@@ -806,6 +927,15 @@ preferences:
     handler: defaults
 ```
 
+### Customizing Dock or keyboard layouts
+
+Edit `config/dock.yaml` or `config/input_sources.yaml`, then re-run bootstrap or the standalone script:
+
+```bash
+./scripts/configure_dock.sh
+./scripts/configure_input_sources.sh
+```
+
 ### Adding a custom install module
 
 1. Create `scripts/install_<module>.sh`
@@ -835,7 +965,7 @@ Each command validates input, prevents duplicates, updates YAML, regenerates `Br
 make test
 ```
 
-The test suite covers config parsing, token validation, duplicate detection, dry-run mode, and Xcode version extraction.
+The test suite covers config parsing, token validation, duplicate detection, dry-run mode, dock/input source YAML parsing, and Xcode version extraction.
 
 ### Lint scripts
 

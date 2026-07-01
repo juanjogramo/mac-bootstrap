@@ -10,7 +10,9 @@ modules:
   cli: true               # CLI tools from config/cli.yaml (includes Oh My Zsh)
   apps: true              # Homebrew casks from config/apps.yaml
   mas: true               # Mac App Store apps from config/mas.yaml
+  dock: true              # Dock layout via dockutil (config/dock.yaml)
   macos_preferences: true # System defaults from config/macos.yaml
+  input_sources: true     # Keyboard layouts from config/input_sources.yaml
   xcode: false            # Install Xcode from .xip archive
 
 # Alternative Xcode trigger (either this or modules.xcode: true)

@@ -26,6 +26,10 @@ source "${BOOTSTRAP_ROOT}/scripts/install_mas.sh"
 source "${BOOTSTRAP_ROOT}/scripts/install_xcode.sh"
 # shellcheck source=scripts/macos_defaults.sh
 source "${BOOTSTRAP_ROOT}/scripts/macos_defaults.sh"
+# shellcheck source=scripts/configure_input_sources.sh
+source "${BOOTSTRAP_ROOT}/scripts/configure_input_sources.sh"
+# shellcheck source=scripts/configure_dock.sh
+source "${BOOTSTRAP_ROOT}/scripts/configure_dock.sh"
 # shellcheck source=scripts/validate.sh
 source "${BOOTSTRAP_ROOT}/scripts/validate.sh"
 # shellcheck source=scripts/add_item.sh
@@ -105,8 +109,16 @@ run_bootstrap_profile() {
     run_bootstrap_step "mas" install_mas
   fi
 
+  if profile_module_enabled "dock"; then
+    run_bootstrap_step "dock" configure_dock
+  fi
+
   if profile_module_enabled "macos_preferences"; then
     run_bootstrap_step "macos-preferences" configure_macos_preferences
+  fi
+
+  if profile_module_enabled "input_sources"; then
+    run_bootstrap_step "input-sources" configure_input_sources
   fi
 
   local profile_xcode

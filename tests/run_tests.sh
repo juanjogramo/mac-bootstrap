@@ -53,6 +53,8 @@ test_config_files_exist() {
   assert_file_exists "${CONFIG_DIR}/cli.yaml"
   assert_file_exists "${CONFIG_DIR}/mas.yaml"
   assert_file_exists "${CONFIG_DIR}/macos.yaml"
+  assert_file_exists "${CONFIG_DIR}/input_sources.yaml"
+  assert_file_exists "${CONFIG_DIR}/dock.yaml"
   assert_file_exists "${CONFIG_DIR}/xcode.yaml"
   assert_file_exists "${PROFILES_DIR}/personal.yaml"
 }
@@ -68,7 +70,7 @@ test_cli_yaml_parsing() {
   echo "Test: cli.yaml parsing"
   local count
   count="$(yaml_get_list "${CONFIG_DIR}/cli.yaml" "cli" | ruby -rjson -e 'puts JSON.parse(STDIN.read).length')"
-  assert_equals "3" "$count" "cli.yaml contains 3 CLI tools"
+  assert_equals "4" "$count" "cli.yaml contains 4 CLI tools"
 }
 
 test_mas_yaml_parsing() {
@@ -76,6 +78,22 @@ test_mas_yaml_parsing() {
   local count
   count="$(yaml_get_list "${CONFIG_DIR}/mas.yaml" "mas_apps" | ruby -rjson -e 'puts JSON.parse(STDIN.read).length')"
   assert_equals "1" "$count" "mas.yaml contains 1 MAS app"
+}
+
+test_input_sources_yaml_parsing() {
+  echo "Test: input_sources.yaml parsing"
+  local count
+  count="$(yaml_get_list "${CONFIG_DIR}/input_sources.yaml" "input_sources" | ruby -rjson -e 'puts JSON.parse(STDIN.read).length')"
+  assert_equals "2" "$count" "input_sources.yaml contains 2 keyboard layouts"
+}
+
+test_dock_yaml_parsing() {
+  echo "Test: dock.yaml parsing"
+  local remove_count add_count
+  remove_count="$(yaml_get_list "${CONFIG_DIR}/dock.yaml" "dock_remove" | ruby -rjson -e 'puts JSON.parse(STDIN.read).length')"
+  add_count="$(yaml_get_list "${CONFIG_DIR}/dock.yaml" "dock_add" | ruby -rjson -e 'puts JSON.parse(STDIN.read).length')"
+  assert_equals "11" "$remove_count" "dock.yaml contains 11 items to remove"
+  assert_equals "6" "$add_count" "dock.yaml contains 6 items to add"
 }
 
 test_validate_token() {
@@ -219,6 +237,10 @@ echo ""
 test_cli_yaml_parsing
 echo ""
 test_mas_yaml_parsing
+echo ""
+test_input_sources_yaml_parsing
+echo ""
+test_dock_yaml_parsing
 echo ""
 test_validate_token
 echo ""

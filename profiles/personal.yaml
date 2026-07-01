@@ -10,7 +10,9 @@ modules:
   cli: true
   apps: true
   mas: true
+  dock: true
   macos_preferences: true
+  input_sources: true
   xcode: false
 
 # Set to true to install Xcode during bootstrap (uses --install-xcode logic)

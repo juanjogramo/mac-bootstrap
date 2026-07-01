@@ -1,0 +1,9 @@
+# Keyboard input sources (enabled if missing during bootstrap)
+# Applied via scripts/configure_input_sources.sh
+
+input_sources:
+  - id: 87
+    name: "Spanish - ISO"
+
+  - id: 252
+    name: ABC
