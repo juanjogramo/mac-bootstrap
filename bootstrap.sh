@@ -34,6 +34,8 @@ source "${BOOTSTRAP_ROOT}/scripts/configure_dock.sh"
 source "${BOOTSTRAP_ROOT}/scripts/validate.sh"
 # shellcheck source=scripts/add_item.sh
 source "${BOOTSTRAP_ROOT}/scripts/add_item.sh"
+# shellcheck source=scripts/uninstall.sh
+source "${BOOTSTRAP_ROOT}/scripts/uninstall.sh"
 
 VERSION="1.0.0"
 
@@ -48,6 +50,8 @@ OPTIONS:
   --profile NAME          Run bootstrap profile (e.g., personal)
   --dry-run               Show what would happen without making changes
   --validate              Validate current installation state
+  --uninstall             Remove mac-bootstrap (keeps installed apps and tools)
+    --home PATH           Install directory to remove (default: auto-detect)
   --install-xcode         Install Xcode from .xip archive
   --xcode-path PATH       Path to Xcode .xip archive
   --add-app NAME          Add Homebrew cask application
@@ -65,6 +69,8 @@ EXAMPLES:
   ./bootstrap.sh --profile personal
   ./bootstrap.sh --profile personal --dry-run
   ./bootstrap.sh --validate
+  ./bootstrap.sh --uninstall
+  ./bootstrap.sh --uninstall --dry-run
   ./bootstrap.sh --install-xcode
   ./bootstrap.sh --xcode-path ~/Downloads/Xcode_26.0.xip
   ./bootstrap.sh --add-app "Raycast" --token raycast
@@ -158,6 +164,7 @@ parse_args() {
   local add_cli_name=""
   local add_mas_name=""
   local add_mas_id=""
+  local uninstall_home=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -173,6 +180,14 @@ parse_args() {
       --validate)
         action="validate"
         shift
+        ;;
+      --uninstall)
+        action="uninstall"
+        shift
+        ;;
+      --home)
+        uninstall_home="$2"
+        shift 2
         ;;
       --install-xcode)
         action="install-xcode"
@@ -265,6 +280,9 @@ parse_args() {
         die "--id is required with --add-mas"
       fi
       add_mas "$add_mas_name" "$add_mas_id"
+      ;;
+    uninstall)
+      run_uninstall "$uninstall_home"
       ;;
   esac
 }

@@ -1,4 +1,4 @@
-.PHONY: help bootstrap dry-run validate brewfile lint test install chmod
+.PHONY: help bootstrap dry-run validate brewfile lint test install chmod uninstall
 
 BOOTSTRAP := ./bootstrap.sh
 PROFILE ?= personal
@@ -9,6 +9,7 @@ help:
 	@echo "  make bootstrap    Run full bootstrap (PROFILE=personal)"
 	@echo "  make dry-run      Preview bootstrap without changes"
 	@echo "  make validate     Validate installation state"
+	@echo "  make uninstall    Remove mac-bootstrap (keeps apps and tools)"
 	@echo "  make brewfile     Regenerate Brewfile from config"
 	@echo "  make lint         Run ShellCheck on all scripts"
 	@echo "  make test         Run test suite"
@@ -26,6 +27,9 @@ dry-run: chmod
 
 validate: chmod
 	$(BOOTSTRAP) --validate
+
+uninstall: chmod
+	$(BOOTSTRAP) --uninstall
 
 brewfile: chmod
 	@source scripts/helpers.sh && regenerate_brewfile

@@ -79,6 +79,7 @@ For local development or manual setup:
 - [Keyboard Input Sources](#keyboard-input-sources)
 - [Xcode Installation](#xcode-installation)
 - [Validation](#validation)
+- [Uninstall](#uninstall)
 - [Logging](#logging)
 - [Safety](#safety)
 - [Makefile Targets](#makefile-targets)
@@ -213,6 +214,8 @@ USAGE:
 | `--profile NAME` | Run a bootstrap profile (e.g. `personal`) |
 | `--dry-run` | Show what would happen without making changes |
 | `--validate` | Validate current installation and configuration state |
+| `--uninstall` | Remove mac-bootstrap tooling (keeps apps and tools) |
+| `--home PATH` | Install directory to remove (with `--uninstall`) |
 | `--install-xcode` | Install Xcode from a `.xip` archive (auto-discover) |
 | `--xcode-path PATH` | Install Xcode from a specific `.xip` file |
 | `--add-app NAME` | Add a Homebrew cask application to config |
@@ -311,6 +314,7 @@ mac-bootstrap/
 │   ├── install_xcode.sh      # Xcode .xip installer
 │   ├── macos_defaults.sh     # System preferences
 │   ├── validate.sh           # Validation report
+│   ├── uninstall.sh          # Remove mac-bootstrap tooling
 │   ├── add_item.sh           # Add app/cli/mas to config
 │   ├── logging.sh            # Structured logging
 │   └── helpers.sh            # Shared utilities
@@ -702,6 +706,41 @@ Validation Summary
 
 ---
 
+## Uninstall
+
+Remove mac-bootstrap itself **without** uninstalling apps, Homebrew packages, or macOS preferences:
+
+```bash
+mac-bootstrap --uninstall
+```
+
+Preview what would be removed:
+
+```bash
+mac-bootstrap --uninstall --dry-run
+```
+
+Remove a custom install location:
+
+```bash
+mac-bootstrap --uninstall --home ~/Developer/mac-bootstrap
+```
+
+### What gets removed
+
+- `~/.mac-bootstrap` (or detected install directory)
+- `mac-bootstrap` PATH entries from `~/.zprofile`, `~/.zshrc`, and `~/.bash_profile`
+
+### What is kept
+
+- Homebrew and all installed formulae/casks
+- Mac App Store applications
+- Oh My Zsh
+- macOS preference changes
+- Xcode installations
+
+---
+
 ## Logging
 
 All operations are written to `logs/bootstrap.log` (gitignored) with structured levels:
@@ -744,6 +783,7 @@ make chmod        # Make scripts executable
 make bootstrap    # Run bootstrap (PROFILE=personal)
 make dry-run      # Preview bootstrap
 make validate     # Run validation
+make uninstall    # Remove mac-bootstrap tooling
 make brewfile     # Regenerate Brewfile from config
 make lint         # Run ShellCheck (requires: brew install shellcheck)
 make test         # Run test suite

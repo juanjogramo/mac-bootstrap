@@ -22,29 +22,47 @@ run_homebrew_installer() {
 }
 
 configure_homebrew_path() {
-  local brew_shellenv=""
+  local brew_bin=""
+  local shell_name="${SHELL##*/}"
+  local zprofile="${HOME}/.zprofile"
+  local shellenv_line=""
+
+  shell_name="${shell_name:-zsh}"
 
   if [[ -x /opt/homebrew/bin/brew ]]; then
-    brew_shellenv='eval "$(/opt/homebrew/bin/brew shellenv)"'
+    brew_bin="/opt/homebrew/bin/brew"
   elif [[ -x /usr/local/bin/brew ]]; then
-    brew_shellenv='eval "$(/usr/local/bin/brew shellenv)"'
+    brew_bin="/usr/local/bin/brew"
+  elif command_exists brew; then
+    brew_bin="$(command -v brew)"
   else
     return 1
   fi
 
-  for rcfile in "${HOME}/.zprofile" "${HOME}/.zshrc" "${HOME}/.bash_profile"; do
-    if [[ -f "$rcfile" ]] && ! grep -q 'brew shellenv' "$rcfile" 2>/dev/null; then
-      {
-        echo ""
-        echo "# Homebrew"
-        echo "$brew_shellenv"
-      } >>"$rcfile"
-      log_info "Added Homebrew to ${rcfile}"
-    fi
-  done
+  shellenv_line="eval \"\$(${brew_bin} shellenv ${shell_name})\""
 
-  # shellcheck disable=SC1090
-  eval "$brew_shellenv"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log_dry_run "Would run: echo >> ${zprofile}"
+    log_dry_run "Would run: echo '${shellenv_line}' >> ${zprofile}"
+    log_dry_run "Would run: eval \"\$(${brew_bin} shellenv ${shell_name})\""
+    return 0
+  fi
+
+  if [[ ! -f "${zprofile}" ]]; then
+    touch "${zprofile}"
+  fi
+
+  if grep -q 'brew shellenv' "${zprofile}" 2>/dev/null; then
+    log_info "Homebrew already configured in ${zprofile}"
+  else
+    echo >>"${zprofile}"
+    echo "${shellenv_line}" >>"${zprofile}"
+    log_info "Added Homebrew to ${zprofile}"
+  fi
+
+  # shellcheck disable=SC2091
+  eval "$("${brew_bin}" shellenv "${shell_name}")"
+  log_success "Homebrew activated in current shell session"
   return 0
 }
 
@@ -53,6 +71,7 @@ install_homebrew() {
 
   if command_exists brew; then
     log_info "Homebrew already installed at $(command -v brew)"
+    configure_homebrew_path || log_warn "Could not configure Homebrew PATH"
     if [[ "$DRY_RUN" != "true" ]]; then
       log_info "Updating Homebrew..."
       run_cmd brew update || log_warn "Homebrew update failed; continuing"
@@ -63,6 +82,7 @@ install_homebrew() {
   log_info "Homebrew not found. Installing..."
   if [[ "$DRY_RUN" == "true" ]]; then
     log_dry_run "Would install Homebrew from ${HOMEBREW_INSTALL_URL}"
+    configure_homebrew_path
     return 0
   fi
 

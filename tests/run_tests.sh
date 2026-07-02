@@ -214,6 +214,46 @@ test_run_bootstrap_step_continues() {
   fi
 }
 
+test_uninstall_dry_run() {
+  echo "Test: uninstall dry-run"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  local output
+  output="$(bash "${BOOTSTRAP_ROOT}/bootstrap.sh" --uninstall --dry-run --force 2>&1 || true)"
+  if echo "$output" | grep -q "Uninstalling mac-bootstrap"; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    echo "  PASS: uninstall dry-run completes"
+  else
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    echo "  FAIL: uninstall dry-run failed"
+  fi
+}
+
+test_remove_shell_config_entries() {
+  echo "Test: remove shell config entries"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  local tmpfile
+  tmpfile="$(mktemp)"
+  cat >"${tmpfile}" <<'EOF'
+export PATH="/usr/bin:${PATH}"
+
+# mac-bootstrap
+export PATH="${HOME}/.mac-bootstrap/bin:${PATH}"
+EOF
+  if DRY_RUN=false bash -c "
+    source '${BOOTSTRAP_ROOT}/scripts/helpers.sh'
+    source '${BOOTSTRAP_ROOT}/scripts/uninstall.sh'
+    remove_shell_config_entries '${tmpfile}'
+    ! grep -q mac-bootstrap '${tmpfile}'
+  "; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    echo "  PASS: mac-bootstrap entries removed from shell config"
+  else
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    echo "  FAIL: shell config entries not removed correctly"
+  fi
+  rm -f "${tmpfile}"
+}
+
 test_xcode_version_extraction() {
   echo "Test: Xcode version extraction"
   # shellcheck source=../scripts/install_xcode.sh
@@ -261,6 +301,10 @@ echo ""
 test_ensure_sudo_dry_run
 echo ""
 test_run_bootstrap_step_continues
+echo ""
+test_uninstall_dry_run
+echo ""
+test_remove_shell_config_entries
 echo ""
 test_xcode_dry_run_includes_clt
 echo ""

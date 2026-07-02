@@ -4,6 +4,8 @@ All notable changes to mac-bootstrap configuration are documented here.
 
 ## [2026-06-30]
 
+- Add --uninstall to remove mac-bootstrap while keeping installed apps and tools
+- Configure Homebrew PATH using official post-install shellenv commands
 - Added Dock configuration module (dockutil) with default remove/add lists in `config/dock.yaml`
 - Added keyboard input source module for Spanish - ISO (87) and ABC (252) layouts
 - Added CLI tool: dockutil (formula: dockutil)
