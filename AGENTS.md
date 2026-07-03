@@ -1,45 +1,55 @@
-# AGENTS.md — Guide for AI Assistants
+# AGENTS.md — AI guide for mac-bootstrap
 
-This document helps AI agents work efficiently on **mac-bootstrap**: a Bash-based, YAML-driven macOS bootstrap CLI.
+Bash + YAML macOS bootstrap CLI. End-user docs: [README.md](README.md).
 
-For end-user documentation, see [README.md](README.md).
+**AI assets in this repo:**
 
----
-
-## What This Project Does
-
-mac-bootstrap configures a fresh Mac from version-controlled YAML: Homebrew apps/formulae, Mac App Store apps, macOS defaults, and optional Xcode from a `.xip` archive. It is idempotent, profile-based, and supports dry-run mode.
-
-**Entry points:**
-
-| Script | Purpose |
-|--------|---------|
-| `bootstrap.sh` | Main CLI — bootstrap, validate, add items, install Xcode |
-| `bin/mac-bootstrap` | PATH wrapper → `bootstrap.sh` |
-| `install.sh` | One-line / curl installer; clones to `~/.mac-bootstrap` and runs bootstrap |
+| Asset | Path | When to use |
+|-------|------|-------------|
+| Skills | `.cursor/skills/` | Repeatable workflows (add items, new module, prefs) |
+| Subagents | `.cursor/agents/` | Verification and shell review (readonly) |
+| Rules | `.cursor/rules/` | Always-on + file-scoped constraints |
 
 ---
 
-## Golden Rules
+## Task routing
 
-1. **Configuration lives in YAML** — never hardcode apps, tools, or preferences in shell scripts.
-2. **Do not hand-edit `Brewfile`** — it is auto-generated from `config/apps.yaml` and `config/cli.yaml`. Run `make brewfile` after manual YAML edits to those files.
-3. **Bash 3.2+ only** — macOS default shell. No bash 4+ features (`declare -A`, `mapfile`, `[[ =~ ]]`, etc.).
-4. **Use existing helpers** — `log_*`, `run_cmd`, `run_sudo`, `yaml_*`, `run_bootstrap_step`. Do not duplicate.
-5. **Prefer `--add-*` CLI** over manual YAML when adding apps, CLI tools, or MAS apps (validates, deduplicates, updates CHANGELOG).
-6. **Run `make test && make lint`** before finishing any change.
-7. **Never store credentials** — MAS and GitHub auth are user-managed at runtime.
-8. **This project only runs on macOS** — do not assume Linux compatibility.
+| Task | Primary action | Skill / agent |
+|------|----------------|---------------|
+| Add Homebrew app | `./bootstrap.sh --add-app "Name" --token token` | `add-config-item` |
+| Add CLI tool | `./bootstrap.sh --add-cli "formula"` | `add-config-item` |
+| Add MAS app | `./bootstrap.sh --add-mas "Name" --id 123` | `add-config-item` |
+| Add macOS preference | Edit `config/macos.yaml` | `macos-preference` |
+| Customize Dock / keyboard | Edit `config/dock.yaml` / `config/input_sources.yaml` | — |
+| New install module | Script + profile + `bootstrap.sh` wiring | `new-bootstrap-module` |
+| New profile | Copy `profiles/_template.yaml` | — |
+| Before finishing any change | `make test && make lint` | `bootstrap-verifier` subagent |
+| Review shell edits | — | `shell-reviewer` subagent |
+
+**Safe preview:** `make dry-run` or `./bootstrap.sh --profile personal --dry-run`
+
+---
+
+## Golden rules
+
+1. **Config in YAML** — never hardcode apps, tools, or prefs in scripts
+2. **`Brewfile` is generated** — `make brewfile` after editing `apps.yaml` or `cli.yaml`
+3. **Bash 3.2+ only** — no `declare -A`, `mapfile`, `[[ =~ ]]`
+4. **Use helpers** — `log_*`, `run_cmd`, `run_sudo`, `yaml_*`, `run_bootstrap_step`, `die`
+5. **Prefer `--add-*`** over manual YAML (validates, dedupes, updates CHANGELOG)
+6. **`make test && make lint`** before finishing
+7. **No credentials** in repo — MAS/GitHub auth is runtime-only
+8. **macOS only** — do not assume Linux
 
 ---
 
 ## Architecture
 
-### Sourced modules (not subprocesses)
+### Sourced modules
 
-`bootstrap.sh` **sources** all `scripts/*.sh` into one shell session. Globals like `BOOTSTRAP_ROOT`, `DRY_RUN`, `PROFILE_FILE`, and `BOOTSTRAP_FAILED_STEPS` are shared.
+`bootstrap.sh` **sources** all `scripts/*.sh`. Globals (`BOOTSTRAP_ROOT`, `DRY_RUN`, `PROFILE_FILE`, `BOOTSTRAP_FAILED_STEPS`) are shared.
 
-**Implication:** Top-level code in install scripts runs at source time. New logic must live inside functions, guarded by:
+New logic must live in functions, with optional standalone guard:
 
 ```bash
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
@@ -47,188 +57,143 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 fi
 ```
 
-### Bootstrap flow (module order)
+### Bootstrap order
 
 ```
-homebrew → cli/oh_my_zsh → apps → mas → macos_preferences → xcode (optional)
+homebrew → cli/oh_my_zsh → apps → mas → dock → macos_preferences → input_sources → xcode (optional)
 ```
 
-Each step runs via `run_bootstrap_step`, which records failures but **does not abort** the profile. After a real bootstrap, validation runs automatically.
+`run_bootstrap_step` records failures but **does not abort** the profile. Validation runs automatically after a real bootstrap (not dry-run).
 
 ### YAML parsing
 
-YAML is parsed with **Ruby one-liners** in `scripts/helpers.sh` (`yaml_get_list`, `yaml_get_value`, `yaml_append_*`). Do not add `yq` or bash-native YAML parsers.
+Ruby one-liners in `scripts/helpers.sh` — **no `yq`**. Key functions:
 
-### Key paths
-
-| Path | Role |
-|------|------|
-| `config/*.yaml` | Apps, CLI, MAS, macOS prefs, Xcode settings |
-| `profiles/*.yaml` | Module toggles per machine/profile |
-| `scripts/` | Install modules, helpers, validation, add-item logic |
-| `tests/run_tests.sh` | Custom bash test harness |
-| `logs/bootstrap.log` | Runtime log (gitignored content) |
+| Function | Purpose |
+|----------|---------|
+| `yaml_get_list FILE KEY` | JSON array of list items |
+| `yaml_get_value FILE KEY` | Scalar value |
+| `yaml_list_contains FILE LIST FIELD VALUE` | Duplicate check |
+| `yaml_append_item` / `yaml_append_cli_item` / `yaml_append_mas_item` | Append config entries |
+| `regenerate_brewfile` | Rebuild Brewfile from apps + cli |
+| `load_profile` / `profile_module_enabled` | Profile module toggles |
 
 ---
 
-## Profiles
+## Modules reference
 
-Profiles gate which modules run. See `profiles/personal.yaml` and `profiles/_template.yaml`.
-
-| Module key | Script function | Config file |
-|------------|-----------------|-------------|
+| Module key | Function | Config |
+|------------|----------|--------|
 | `homebrew` | `install_homebrew` | — |
 | `cli` | `install_cli` (includes Oh My Zsh) | `config/cli.yaml` |
 | `oh_my_zsh` | `install_oh_my_zsh` (only if `cli: false`) | — |
 | `apps` | `install_apps` | `config/apps.yaml` |
 | `mas` | `install_mas` | `config/mas.yaml` |
+| `dock` | `configure_dock` | `config/dock.yaml` |
 | `macos_preferences` | `configure_macos_preferences` | `config/macos.yaml` |
+| `input_sources` | `configure_input_sources` | `config/input_sources.yaml` |
 | `xcode` / `install_xcode` | `install_xcode` | `config/xcode.yaml` |
 
-**Note:** `validation.strict` and `validation.fail_on_warnings` in profile YAML are **not implemented yet**. Do not assume they affect `validate.sh`.
+`validation.strict` and `validation.fail_on_warnings` in profile YAML are **not implemented** — do not wire behavior to them without implementing `validate.sh` + tests.
 
 ---
 
-## Common Tasks
+## Finish checklist
 
-### Add a Homebrew cask (app)
-
-```bash
-./bootstrap.sh --add-app "Raycast" --token raycast
-```
-
-Or edit `config/apps.yaml`, then `make brewfile`.
-
-### Add a CLI formula
-
-```bash
-./bootstrap.sh --add-cli "jq"
-```
-
-### Add a Mac App Store app
-
-```bash
-./bootstrap.sh --add-mas "Things 3" --id 904280696
-```
-
-### Add a macOS preference
-
-Edit `config/macos.yaml` — follow existing `preferences:` entries (domain, key, value, type, handler).
-
-### Add a new profile
-
-1. Copy `profiles/_template.yaml` → `profiles/<name>.yaml`
-2. Set module toggles
-3. Run `./bootstrap.sh --profile <name> --dry-run`
-
-### Add a new install module
-
-1. Create `scripts/install_<module>.sh` following existing install scripts (function + optional standalone guard)
-2. Add `modules.<module>: true/false` to profile YAML
-3. Source the script in `bootstrap.sh`
-4. Wire a `run_bootstrap_step` call in `run_bootstrap_profile`
-5. Add tests if the module has testable logic
-
-### Preview changes safely
-
-```bash
-make dry-run                    # full profile dry-run
-./bootstrap.sh --validate       # check current install state
-LOG_LEVEL=DEBUG make dry-run    # verbose dry-run
-```
-
----
-
-## Script Conventions
-
-Every shell script should:
-
-- Use `#!/usr/bin/env bash` and `set -euo pipefail`
-- Source `helpers.sh` (and `logging.sh` if needed)
-- Use `log_section` / `log_info` / `log_warn` / `log_error` for output
-- Check idempotency before installing (`brew list`, `mas list`, `/Applications`, etc.)
-- Respect `DRY_RUN` — log `[DRY-RUN]` actions without side effects
-- Pass ShellCheck (`make lint`)
-
-Install script shape:
-
-```bash
-install_<module>() {
-  log_section "Installing <module>"
-  # guard prerequisites
-  # read config via yaml_get_list / yaml_get_value
-  # loop items with idempotency checks
-  # return 0 on success, 1 on failure
-}
-```
-
----
-
-## Testing
-
-```bash
-make test    # run test suite
-make lint    # ShellCheck (requires: brew install shellcheck)
-```
-
-**Brittle test counts:** `tests/run_tests.sh` hardcodes expected item counts for `apps.yaml` (8), `cli.yaml` (3), and `mas.yaml` (1). **Update these assertions** when adding or removing config items.
-
-Tests run without installing anything — they use dry-run mode and parsing checks.
-
----
-
-## Environment Variables
-
-| Variable | Used by | Purpose |
-|----------|---------|---------|
-| `DRY_RUN=true` | `bootstrap.sh` | Preview without changes |
-| `LOG_LEVEL` | logging | DEBUG, INFO, WARN, ERROR |
-| `MAC_BOOTSTRAP_HOME` | `install.sh` | Install location (default `~/.mac-bootstrap`) |
-| `MAC_BOOTSTRAP_PROFILE` | `install.sh` | Profile to run (default `personal`) |
-| `MAC_BOOTSTRAP_DRY_RUN=1` | `install.sh` | Dry-run via installer |
-| `MAC_BOOTSTRAP_SKIP_RUN=1` | `install.sh` | Install files only, skip bootstrap |
-| `MAC_BOOTSTRAP_NONINTERACTIVE=1` | `install.sh` | Non-interactive install |
-
----
-
-## Change Checklist
-
-Before marking work complete:
-
-- [ ] Config changes use YAML or `--add-*` (not hardcoded in scripts)
-- [ ] `Brewfile` regenerated if `apps.yaml` or `cli.yaml` changed (`make brewfile`)
-- [ ] Test counts updated if config list sizes changed
-- [ ] `CHANGELOG.md` updated for user-facing config changes (auto-done by `--add-*`)
+- [ ] Config via YAML or `--add-*` (not hardcoded in scripts)
+- [ ] `make brewfile` if `apps.yaml` or `cli.yaml` changed
+- [ ] Test counts in `tests/run_tests.sh` updated if list sizes changed
+- [ ] `CHANGELOG.md` for user-facing config changes (`--add-*` does this automatically)
 - [ ] `make test` passes
 - [ ] `make lint` passes
-- [ ] Dry-run tested for bootstrap-affecting changes
+- [ ] `make dry-run` for bootstrap-affecting script changes
 
 ---
 
-## What Not to Do
+## What not to do
 
-- Do not edit `Brewfile` manually
-- Do not use bash 4+ syntax
-- Do not add subprocess calls where sourcing + function calls are the pattern
-- Do not implement `validation.strict` without wiring it through `validate.sh` and tests
-- Do not commit secrets, `.env` files, or user-specific paths
-- Do not run destructive bootstrap on the user's machine without explicit request — use `--dry-run` for verification
+- Hand-edit `Brewfile`
+- Bash 4+ syntax
+- Subprocess pattern where sourcing + function call is the convention
+- Run destructive bootstrap without explicit user request — use `--dry-run`
+- Commit secrets, `.env`, or user-specific paths
+- Implement `validation.strict` half-way
 
 ---
 
-## File Map (quick reference)
+## Entry points
+
+| Script | Purpose |
+|--------|---------|
+| `bootstrap.sh` | Main CLI — bootstrap, validate, add items, Xcode |
+| `bin/mac-bootstrap` | PATH wrapper |
+| `install.sh` | Curl installer → `~/.mac-bootstrap` |
+
+---
+
+## File map
 
 ```
-bootstrap.sh          Orchestrator — source this pattern for wiring
+bootstrap.sh          Orchestrator
 install.sh            Remote/local installer
-config/               YAML configuration (source of truth)
-profiles/             Per-machine module toggles
+config/               YAML source of truth
+profiles/             Module toggles per machine
 scripts/
-  helpers.sh          YAML, sudo, Brewfile, profile helpers
+  helpers.sh          YAML, sudo, Brewfile, profiles
   logging.sh          Structured logging
-  install_*.sh        One module per file
+  install_*.sh        Install modules
+  configure_*.sh      Dock, input sources, macOS defaults
   validate.sh         Post-bootstrap validation
-  add_item.sh         --add-app/cli/mas implementation
-tests/run_tests.sh    Test harness
-Makefile              test, lint, dry-run, brewfile targets
+  add_item.sh         --add-app/cli/mas
+tests/run_tests.sh    Test harness (hardcoded list counts)
+Makefile              test, lint, dry-run, brewfile
+.cursor/
+  skills/             Workflow skills for agents
+  agents/             Readonly verification subagents
+  rules/              Always-on + glob-scoped rules
 ```
+
+---
+
+## Skills & subagents
+
+### Skills (workflows)
+
+Load automatically when the task matches the skill description.
+
+| Skill | Triggers |
+|-------|----------|
+| `add-config-item` | Adding/removing apps, CLI, MAS; editing apps/cli/mas YAML |
+| `new-bootstrap-module` | New `scripts/install_*.sh`, wiring `bootstrap.sh`, profile toggles |
+| `macos-preference` | Editing `config/macos.yaml` or defaults behavior |
+
+### Subagents (delegation)
+
+| Subagent | Role | Mode |
+|----------|------|------|
+| `bootstrap-verifier` | Run test/lint, check checklist against diff | readonly |
+| `shell-reviewer` | Bash 3.2, sourced-module, helper conventions | readonly |
+
+Built-in Cursor subagents (`Explore`, `Bash`, `Bugbot`, `security-review`) still apply for exploration and generic review — project subagents add mac-bootstrap-specific checks.
+
+**When skill vs subagent:** Use a **skill** for step-by-step workflows the main agent executes. Delegate to a **subagent** for independent verification or focused review in an isolated context.
+
+---
+
+## Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `DRY_RUN=true` | Preview without changes |
+| `LOG_LEVEL` | DEBUG, INFO, WARN, ERROR |
+| `MAC_BOOTSTRAP_HOME` | Install location (default `~/.mac-bootstrap`) |
+| `MAC_BOOTSTRAP_PROFILE` | Profile for `install.sh` (default `personal`) |
+| `MAC_BOOTSTRAP_DRY_RUN=1` | Dry-run via installer |
+| `MAC_BOOTSTRAP_SKIP_RUN=1` | Install files only |
+| `MAC_BOOTSTRAP_NONINTERACTIVE=1` | Unattended install |
+
+---
+
+## Testing note
+
+`tests/run_tests.sh` hardcodes expected list counts — grep `assert_equals` in that file and update when config list sizes change. Tests use dry-run and parsing only; nothing is installed.

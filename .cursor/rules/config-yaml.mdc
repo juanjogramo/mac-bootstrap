@@ -1,0 +1,15 @@
+---
+description: YAML config conventions for mac-bootstrap
+globs: "{config/**,profiles/**}"
+alwaysApply: false
+---
+
+# Config YAML
+
+Skill: `.cursor/skills/add-config-item/` (apps/cli/mas) or `.cursor/skills/macos-preference/` (macos.yaml).
+
+- Source of truth for install targets — never duplicate in shell scripts
+- Do not hand-edit `Brewfile` — run `make brewfile` after `apps.yaml` / `cli.yaml` changes
+- Prefer `./bootstrap.sh --add-app/cli/mas` over manual edits
+- After list size changes, update `tests/run_tests.sh` assert counts
+- `validation.strict` / `fail_on_warnings` in profiles are not implemented

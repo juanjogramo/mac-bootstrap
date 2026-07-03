@@ -5,32 +5,25 @@ alwaysApply: true
 
 # mac-bootstrap
 
-Read [AGENTS.md](AGENTS.md) before making changes.
+Read [AGENTS.md](AGENTS.md) for full context. Use skills in `.cursor/skills/` for workflows.
 
 ## Constraints
 
-- Bash 3.2+ only (macOS default). No bash 4+ syntax.
-- All install targets live in `config/*.yaml` — never hardcode apps/tools/prefs in scripts.
-- `Brewfile` is generated — run `make brewfile` after editing `config/apps.yaml` or `config/cli.yaml`.
-- `bootstrap.sh` sources `scripts/*.sh` — new logic goes inside functions, not at file top level.
-- YAML parsing uses Ruby helpers in `scripts/helpers.sh` — do not add `yq` or other parsers.
-- Use existing helpers: `log_*`, `run_cmd`, `run_sudo`, `yaml_*`, `run_bootstrap_step`, `die`.
+- Bash 3.2+ only. No bash 4+ syntax.
+- Install targets in `config/*.yaml` — never hardcode in scripts.
+- `Brewfile` is generated — `make brewfile` after `apps.yaml` / `cli.yaml` edits.
+- `bootstrap.sh` sources scripts — logic inside functions only.
+- YAML via Ruby helpers in `scripts/helpers.sh` — no `yq`.
+- Helpers: `log_*`, `run_cmd`, `run_sudo`, `yaml_*`, `run_bootstrap_step`, `die`.
 
 ## Before finishing
 
-1. `make test` — update hardcoded counts in `tests/run_tests.sh` if config list sizes changed
-2. `make lint` — all scripts must pass ShellCheck
-3. Prefer `./bootstrap.sh --add-app/cli/mas` over manual YAML when adding items
-
-## Adding features
-
-- **New app/cli/mas:** `--add-*` CLI or edit `config/*.yaml`
-- **New preference:** `config/macos.yaml`
-- **New profile:** copy `profiles/_template.yaml`
-- **New module:** `scripts/install_<name>.sh` + profile toggle + source/wire in `bootstrap.sh`
+1. `make test` — update `tests/run_tests.sh` counts if config lists changed
+2. `make lint`
+3. Prefer `./bootstrap.sh --add-app/cli/mas` for new items
 
 ## Safety
 
-- Use `--dry-run` or `make dry-run` to verify bootstrap changes
-- Never store credentials or commit secrets
-- `validation.strict` in profiles is not implemented — do not assume it works
+- `--dry-run` / `make dry-run` for bootstrap changes
+- No credentials in repo
+- `validation.strict` in profiles is not implemented

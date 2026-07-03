@@ -997,7 +997,7 @@ Each command validates input, prevents duplicates, updates YAML, regenerates `Br
 
 ## Development
 
-> **AI assistants:** See [AGENTS.md](AGENTS.md) for architecture, conventions, and change checklists.
+> **AI assistants:** See [AGENTS.md](AGENTS.md) for task routing, conventions, and `.cursor/skills/` / `.cursor/agents/` workflows.
 
 ### Run tests
 

@@ -1,0 +1,16 @@
+---
+description: Bash conventions for mac-bootstrap shell scripts
+globs: "**/*.sh"
+alwaysApply: false
+---
+
+# Shell scripts
+
+Read [AGENTS.md](../../AGENTS.md). Skill: `.cursor/skills/new-bootstrap-module/`.
+
+- Bash 3.2+ only — no bash 4+ syntax
+- Logic inside functions; scripts are sourced by `bootstrap.sh`
+- Use helpers from `scripts/helpers.sh` — no new YAML parsers
+- Install targets from `config/*.yaml` only
+- Idempotency checks + `DRY_RUN` support on every install/configure path
+- Finish with `make test && make lint`
