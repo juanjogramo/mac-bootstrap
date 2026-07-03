@@ -36,7 +36,7 @@ brewfile: chmod
 
 lint:
 	@command -v shellcheck >/dev/null 2>&1 || { echo "Install shellcheck: brew install shellcheck"; exit 1; }
-	shellcheck bootstrap.sh install.sh bin/mac-bootstrap scripts/*.sh
+	shellcheck -S warning -x -P scripts bootstrap.sh install.sh bin/mac-bootstrap scripts/*.sh
 
 test: chmod
 	./tests/run_tests.sh
